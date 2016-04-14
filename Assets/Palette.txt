@@ -1,0 +1,7 @@
+White - FFFFFF
+
+Blue - 0099FF
+
+Black - 000000
+
+Gray - DADEE0

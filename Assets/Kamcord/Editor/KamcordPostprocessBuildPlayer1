@@ -1,0 +1,49 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use Cwd;
+use File::Basename qw(basename dirname fileparse);
+
+# Unity-Provided Publish Arguments
+my $PublishFile = $ARGV[0];
+my $kamcordUnityVersion = "";
+if (scalar(@ARGV) > 1)
+{
+    my $version = $ARGV[1];
+    $version =~ s/\s*(\S*)\s*/$1/g;
+    if (length($version) > 0)
+    {
+        $kamcordUnityVersion = quotemeta($version);
+    }
+}
+print "Kamcord Unity version: " . $kamcordUnityVersion . "\n";
+print "length(Kamcord Unity version): " . length($kamcordUnityVersion) . "\n";
+
+my ($PublishFileName, $PublishFolder, $PublishSuffix) = fileparse($PublishFile, qr/\.[^.]*/);
+
+print "PublishFile:   $PublishFile\n";
+
+my $curdir               = getcwd();
+my $unityAssetsXcodePath = $curdir . "/Assets/Kamcord/Xcode/";
+my $xcodeOutputPath      = $PublishFile;
+
+print "Unity Assets/Kamcord/Xcode path: " . $unityAssetsXcodePath . "\n";
+
+# Copy files from Unity Assets/Kamcord/Xcode/ to the generated Xcode project.
+# Erase .meta files afterwards.
+my $toPath = $PublishFile . "/Kamcord/";
+`mkdir -p "$toPath"`;
+`cp -R "$unityAssetsXcodePath" "$toPath"`;
+`find "$toPath" -type f -name '*.meta' -exec rm -f {} \\;`; # Normal ending is \; but have to escape the \ so we have \\;
+
+
+### Now execute the second post process build player script
+my $secondScriptExecutor        = "python";
+my $secondPostProcesScriptName  = '"' . join("/", $curdir,"Assets", "Kamcord", "Editor", "KamcordPostprocessBuildPlayer2") . '"';
+my $pbxProjLocation             = '"' . $PublishFile . "/Unity-iPhone.xcodeproj/project.pbxproj" . '"';
+my $cmd = join(" ", $secondScriptExecutor, $secondPostProcesScriptName, $pbxProjLocation, $kamcordUnityVersion);
+
+print "[Executing $cmd.]\n";
+system($cmd);
+print "[Finished executing $cmd.]\n";
+
